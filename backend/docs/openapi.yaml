@@ -1,0 +1,1737 @@
+openapi: 3.0.3
+info:
+  title: Citizen Service Center Management Web System API
+  version: 1.0.0
+  description: 'Session authentication with CSRF: call GET /api/v1/auth/csrf/ first
+    and send the token in the X-CSRFToken header on every POST, PUT, PATCH and DELETE.
+    Success bodies are {success, message, data, meta}; error bodies are {success:
+    false, error: {type, code, details}}.'
+paths:
+  /api/v1/auth/csrf/:
+    get:
+      operationId: api_v1_auth_csrf_retrieve
+      summary: Get a CSRF token (also set as the csrftoken cookie)
+      tags:
+      - auth
+      security:
+      - sessionAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CsrfResponse'
+          description: ''
+  /api/v1/auth/login/:
+    post:
+      operationId: api_v1_auth_login_create
+      summary: 'UC-02 Log in and open a session (the CSRF token rotates: read it again)'
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      security:
+      - sessionAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+          description: ''
+  /api/v1/auth/logout/:
+    post:
+      operationId: api_v1_auth_logout_create
+      summary: UC-06 Log out and invalidate the session
+      tags:
+      - auth
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+          description: ''
+  /api/v1/auth/me/:
+    get:
+      operationId: api_v1_auth_me_retrieve
+      summary: 'Current user: role, department and capabilities'
+      tags:
+      - auth
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+          description: ''
+    patch:
+      operationId: api_v1_auth_me_partial_update
+      summary: UC-08 Edit own profile (email and phone only)
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileUpdateRequest'
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileUpdateResponse'
+          description: ''
+  /api/v1/auth/me/password/:
+    post:
+      operationId: api_v1_auth_me_password_create
+      summary: UC-07 Change own password (other sessions end)
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+        required: true
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangePasswordResponse'
+          description: ''
+  /api/v1/auth/register/:
+    post:
+      operationId: api_v1_auth_register_create
+      summary: UC-01 Register a citizen account (multipart, does not log in)
+      tags:
+      - auth
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      security:
+      - sessionAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+          description: ''
+  /api/v1/auth/users/:
+    get:
+      operationId: users_list
+      summary: UC-18 Browse users within the manager's scope
+      parameters:
+      - in: query
+        name: department_id
+        schema:
+          type: integer
+          minimum: 1
+      - in: query
+        name: role
+        schema:
+          enum:
+          - CITIZEN
+          - EMPLOYEE
+          - DEPT_MANAGER
+          - SYSTEM_ADMIN
+          type: string
+          minLength: 1
+        description: |-
+          * `CITIZEN` - Citizen
+          * `EMPLOYEE` - Employee
+          * `DEPT_MANAGER` - Department Manager
+          * `SYSTEM_ADMIN` - System Administrator
+      - in: query
+        name: search
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 150
+      - in: query
+        name: status
+        schema:
+          enum:
+          - ACTIVE
+          - DISABLED
+          type: string
+          minLength: 1
+        description: |-
+          * `ACTIVE` - Active
+          * `DISABLED` - Disabled
+      tags:
+      - users
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+          description: ''
+    post:
+      operationId: api_v1_auth_users_create
+      summary: UC-04 / UC-05 Create a Department Manager or Employee account
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StaffCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StaffCreateRequest'
+        required: true
+      security:
+      - sessionAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StaffCreateResponse'
+          description: ''
+  /api/v1/auth/users/{user_id}/:
+    get:
+      operationId: api_v1_auth_users_retrieve
+      summary: Account details within the manager's scope
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetailResponse'
+          description: ''
+    patch:
+      operationId: api_v1_auth_users_partial_update
+      summary: UC-15 Edit an employee's or manager's data
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedStaffUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedStaffUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedStaffUpdateRequest'
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserUpdateResponse'
+          description: ''
+  /api/v1/auth/users/{user_id}/identity-documents/{side}/:
+    get:
+      operationId: api_v1_auth_users_identity_documents_retrieve
+      description: Returns the image itself (not the JSON envelope).
+      summary: Download one side of a citizen's ID card (the citizen or the System
+        Administrator)
+      parameters:
+      - in: path
+        name: side
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/auth/users/{user_id}/reset-password/:
+    post:
+      operationId: api_v1_auth_users_reset_password_create
+      summary: UC-03 Reset a user's password (ends their sessions, removes the lock)
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+        required: true
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPasswordResponse'
+          description: ''
+  /api/v1/auth/users/{user_id}/status/:
+    patch:
+      operationId: api_v1_auth_users_status_partial_update
+      summary: UC-16 Deactivate (reason required) or reactivate an account
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserStatusRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserStatusRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserStatusRequest'
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStatusResponse'
+          description: ''
+  /api/v1/auth/users/{user_id}/transfer/:
+    post:
+      operationId: api_v1_auth_users_transfer_create
+      summary: UC-17 Transfer an employee or manager to another department
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+        required: true
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTransferResponse'
+          description: ''
+  /api/v1/center-settings/:
+    get:
+      operationId: api_v1_center_settings_retrieve
+      summary: 'Center information: name, address, contact numbers, working hours
+        (public)'
+      tags:
+      - center-settings
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CenterSettingsResponse'
+          description: ''
+    put:
+      operationId: api_v1_center_settings_update
+      summary: UC-19 Configure the center information
+      tags:
+      - center-settings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CenterSettingsRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CenterSettingsRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CenterSettingsRequest'
+        required: true
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CenterSettingsResponse'
+          description: ''
+  /api/v1/departments/:
+    get:
+      operationId: departments_list
+      summary: UC-14 Browse departments (archived ones only with ?status=ARCHIVED)
+      parameters:
+      - in: query
+        name: search
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 150
+      - in: query
+        name: status
+        schema:
+          enum:
+          - ACTIVE
+          - SUSPENDED
+          - ARCHIVED
+          type: string
+          minLength: 1
+        description: |-
+          * `ACTIVE` - Active
+          * `SUSPENDED` - Suspended
+          * `ARCHIVED` - Archived
+      tags:
+      - departments
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentListResponse'
+          description: ''
+    post:
+      operationId: api_v1_departments_create
+      summary: 'UC-09 Create a department (active, without managers: add one with
+        UC-04)'
+      tags:
+      - departments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DepartmentCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DepartmentCreateRequest'
+        required: true
+      security:
+      - sessionAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentResponse'
+          description: ''
+  /api/v1/departments/{department_id}/:
+    get:
+      operationId: api_v1_departments_retrieve
+      summary: 'UC-14 Department page: managers, employees, counts and available actions'
+      parameters:
+      - in: path
+        name: department_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - departments
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentResponse'
+          description: ''
+    patch:
+      operationId: api_v1_departments_partial_update
+      summary: UC-10 Edit a department (not once archived)
+      parameters:
+      - in: path
+        name: department_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - departments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentUpdateRequest'
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentResponse'
+          description: ''
+    delete:
+      operationId: api_v1_departments_destroy
+      summary: UC-12 Delete a suspended department without accounts or requests
+      parameters:
+      - in: path
+        name: department_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - departments
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentDeleteResponse'
+          description: ''
+  /api/v1/departments/{department_id}/archive/:
+    post:
+      operationId: api_v1_departments_archive_create
+      summary: UC-12 2b Archive a suspended department linked to requests
+      parameters:
+      - in: path
+        name: department_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - departments
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentResponse'
+          description: ''
+  /api/v1/departments/{department_id}/managers/{user_id}/remove/:
+    post:
+      operationId: api_v1_departments_managers_remove_create
+      summary: 'UC-13 Remove a manager: deactivate the account, or transfer it (UC-17)'
+      parameters:
+      - in: path
+        name: department_id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - departments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveManagerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RemoveManagerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RemoveManagerRequest'
+        required: true
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoveManagerResponse'
+          description: ''
+  /api/v1/departments/{department_id}/status/:
+    patch:
+      operationId: api_v1_departments_status_partial_update
+      summary: UC-11 Suspend or activate a department
+      parameters:
+      - in: path
+        name: department_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - departments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentStatusRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentStatusRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartmentStatusRequest'
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentResponse'
+          description: ''
+components:
+  schemas:
+    AccountStatusEnum:
+      enum:
+      - ACTIVE
+      - DISABLED
+      type: string
+      description: |-
+        * `ACTIVE` - Active
+        * `DISABLED` - Disabled
+    CenterSettings:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 150
+        address:
+          type: string
+          maxLength: 255
+        contact_phones:
+          type: string
+          description: Shown when a password is forgotten (UC-02 3a).
+          maxLength: 100
+        work_start:
+          type: string
+          format: time
+        work_end:
+          type: string
+          format: time
+      required:
+      - address
+      - contact_phones
+      - name
+      - work_end
+      - work_start
+    CenterSettingsRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        address:
+          type: string
+          minLength: 1
+          maxLength: 255
+        contact_phones:
+          type: string
+          minLength: 1
+          description: Shown when a password is forgotten (UC-02 3a).
+          maxLength: 100
+        work_start:
+          type: string
+          format: time
+        work_end:
+          type: string
+          format: time
+      required:
+      - address
+      - contact_phones
+      - name
+      - work_end
+      - work_start
+    CenterSettingsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/CenterSettingsResponseData'
+      required:
+      - data
+      - message
+    CenterSettingsResponseData:
+      type: object
+      properties:
+        center_settings:
+          $ref: '#/components/schemas/CenterSettings'
+      required:
+      - center_settings
+    ChangePasswordRequest:
+      type: object
+      properties:
+        current_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        new_password_confirmation:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+      required:
+      - current_password
+      - new_password
+      - new_password_confirmation
+    ChangePasswordResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          nullable: true
+      required:
+      - data
+      - message
+    CsrfResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/CsrfResponseData'
+      required:
+      - data
+      - message
+    CsrfResponseData:
+      type: object
+      properties:
+        csrf_token:
+          type: string
+      required:
+      - csrf_token
+    CurrentUser:
+      type: object
+      description: 'GET /auth/me/: the front end routes each role to its interface
+        from this.'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_name:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 150
+        phone:
+          type: string
+          maxLength: 20
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        status:
+          $ref: '#/components/schemas/AccountStatusEnum'
+        job_title:
+          type: string
+          nullable: true
+          maxLength: 100
+        department:
+          allOf:
+          - $ref: '#/components/schemas/DepartmentRef'
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        national_id:
+          type: string
+          nullable: true
+          maxLength: 20
+        capabilities:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        identity_documents:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+      required:
+      - capabilities
+      - created_at
+      - department
+      - email
+      - full_name
+      - id
+      - identity_documents
+      - phone
+      - role
+    Department:
+      type: object
+      description: A row of the departments list (UC-14 step 2).
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 150
+        description:
+          type: string
+        authority:
+          type: string
+          maxLength: 150
+        status:
+          $ref: '#/components/schemas/DepartmentStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        managers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+          readOnly: true
+        has_managers:
+          type: boolean
+          readOnly: true
+          description: False shows the 'no manager' alert.
+        employee_count:
+          type: integer
+          readOnly: true
+        service_count:
+          type: integer
+          readOnly: true
+      required:
+      - authority
+      - created_at
+      - employee_count
+      - has_managers
+      - id
+      - managers
+      - name
+      - service_count
+    DepartmentCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        authority:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+          default: ''
+      required:
+      - authority
+      - name
+    DepartmentDeleteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          nullable: true
+      required:
+      - data
+      - message
+    DepartmentDetail:
+      type: object
+      description: The department page (UC-14 step 4), with the actions allowed for
+        its status.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 150
+        description:
+          type: string
+        authority:
+          type: string
+          maxLength: 150
+        status:
+          $ref: '#/components/schemas/DepartmentStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        managers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+          readOnly: true
+        has_managers:
+          type: boolean
+          readOnly: true
+          description: False shows the 'no manager' alert.
+        employee_count:
+          type: integer
+          readOnly: true
+        service_count:
+          type: integer
+          readOnly: true
+        employees:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        open_request_count:
+          type: integer
+          readOnly: true
+        actions:
+          type: array
+          items:
+            type: string
+          readOnly: true
+      required:
+      - actions
+      - authority
+      - created_at
+      - employee_count
+      - employees
+      - has_managers
+      - id
+      - managers
+      - name
+      - open_request_count
+      - service_count
+    DepartmentListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/DepartmentListResponseData'
+        meta:
+          $ref: '#/components/schemas/DepartmentListResponseMeta'
+      required:
+      - data
+      - message
+      - meta
+    DepartmentListResponseData:
+      type: object
+      properties:
+        departments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Department'
+      required:
+      - departments
+    DepartmentListResponseMeta:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/DepartmentListResponsePagination'
+      required:
+      - pagination
+    DepartmentListResponsePagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total_items:
+          type: integer
+        total_pages:
+          type: integer
+      required:
+      - page
+      - page_size
+      - total_items
+      - total_pages
+    DepartmentRef:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        status:
+          type: string
+      required:
+      - id
+      - name
+      - status
+    DepartmentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/DepartmentResponseData'
+      required:
+      - data
+      - message
+    DepartmentResponseData:
+      type: object
+      properties:
+        department:
+          $ref: '#/components/schemas/DepartmentDetail'
+      required:
+      - department
+    DepartmentStatusChangeEnum:
+      enum:
+      - ACTIVE
+      - SUSPENDED
+      type: string
+      description: |-
+        * `ACTIVE` - Active
+        * `SUSPENDED` - Suspended
+    DepartmentStatusEnum:
+      enum:
+      - ACTIVE
+      - SUSPENDED
+      - ARCHIVED
+      type: string
+      description: |-
+        * `ACTIVE` - Active
+        * `SUSPENDED` - Suspended
+        * `ARCHIVED` - Archived
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          minLength: 1
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+      required:
+      - email
+      - password
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/LoginResponseData'
+      required:
+      - data
+      - message
+    LoginResponseData:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/CurrentUser'
+      required:
+      - user
+    LogoutResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          nullable: true
+      required:
+      - data
+      - message
+    MeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/MeResponseData'
+      required:
+      - data
+      - message
+    MeResponseData:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/CurrentUser'
+      required:
+      - user
+    Member:
+      type: object
+      properties:
+        id:
+          type: integer
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        status:
+          type: string
+      required:
+      - email
+      - full_name
+      - id
+      - status
+    ModeEnum:
+      enum:
+      - DEACTIVATE
+      - TRANSFER
+      type: string
+      description: |-
+        * `DEACTIVATE` - DEACTIVATE
+        * `TRANSFER` - TRANSFER
+    PatchedDepartmentStatusRequest:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/DepartmentStatusChangeEnum'
+    PatchedDepartmentUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        authority:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+    PatchedProfileUpdateRequest:
+      type: object
+      description: Email and phone only; any other submitted key is refused by AuthService
+        (UC-08 4c).
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 150
+        phone:
+          type: string
+          minLength: 1
+          pattern: ^09\d{8}$
+          maxLength: 10
+    PatchedStaffUpdateRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 150
+        phone:
+          type: string
+          minLength: 1
+          pattern: ^09\d{8}$
+          maxLength: 10
+        job_title:
+          type: string
+          maxLength: 100
+    PatchedUserStatusRequest:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/AccountStatusEnum'
+        reason:
+          type: string
+          default: ''
+          maxLength: 500
+    ProfileUpdateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ProfileUpdateResponseData'
+      required:
+      - data
+      - message
+    ProfileUpdateResponseData:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/CurrentUser'
+      required:
+      - user
+    RegisterRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        national_id:
+          type: string
+          minLength: 1
+          pattern: ^\d{11}$
+          maxLength: 11
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 150
+        phone:
+          type: string
+          minLength: 1
+          pattern: ^09\d{8}$
+          maxLength: 10
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        password_confirmation:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        id_card_front:
+          type: string
+          format: binary
+          description: JPG or PNG image of the ID card front.
+        id_card_back:
+          type: string
+          format: binary
+          description: JPG or PNG image of the ID card back.
+      required:
+      - email
+      - full_name
+      - id_card_back
+      - id_card_front
+      - national_id
+      - password
+      - password_confirmation
+      - phone
+    RegisterResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/RegisterResponseData'
+      required:
+      - data
+      - message
+    RegisterResponseData:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+      - user
+    RemoveManagerRequest:
+      type: object
+      properties:
+        mode:
+          $ref: '#/components/schemas/ModeEnum'
+        target_department_id:
+          type: integer
+          minimum: 1
+          description: Required when mode is TRANSFER.
+      required:
+      - mode
+    RemoveManagerResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/RemoveManagerResponseData'
+      required:
+      - data
+      - message
+    RemoveManagerResponseData:
+      type: object
+      properties:
+        left_without_manager:
+          type: boolean
+        department:
+          $ref: '#/components/schemas/DepartmentDetail'
+      required:
+      - department
+      - left_without_manager
+    ResetPasswordRequest:
+      type: object
+      properties:
+        new_password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        new_password_confirmation:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+      required:
+      - new_password
+      - new_password_confirmation
+    ResetPasswordResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          nullable: true
+      required:
+      - data
+      - message
+    RoleEnum:
+      enum:
+      - CITIZEN
+      - EMPLOYEE
+      - DEPT_MANAGER
+      - SYSTEM_ADMIN
+      type: string
+      description: |-
+        * `CITIZEN` - Citizen
+        * `EMPLOYEE` - Employee
+        * `DEPT_MANAGER` - Department Manager
+        * `SYSTEM_ADMIN` - System Administrator
+    StaffCreateRequest:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/StaffRoleEnum'
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 150
+        phone:
+          type: string
+          minLength: 1
+          pattern: ^09\d{8}$
+          maxLength: 10
+        job_title:
+          type: string
+          maxLength: 100
+        department_id:
+          type: integer
+          minimum: 1
+          description: Required for a Department Manager; employees join their manager's.
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+        password_confirmation:
+          type: string
+          writeOnly: true
+          minLength: 1
+          maxLength: 128
+      required:
+      - email
+      - full_name
+      - password
+      - password_confirmation
+      - phone
+      - role
+    StaffCreateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/StaffCreateResponseData'
+      required:
+      - data
+      - message
+    StaffCreateResponseData:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+      - user
+    StaffRoleEnum:
+      enum:
+      - EMPLOYEE
+      - DEPT_MANAGER
+      type: string
+      description: |-
+        * `EMPLOYEE` - Employee
+        * `DEPT_MANAGER` - Department Manager
+    TransferRequest:
+      type: object
+      properties:
+        department_id:
+          type: integer
+          minimum: 1
+      required:
+      - department_id
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_name:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 150
+        phone:
+          type: string
+          maxLength: 20
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        status:
+          $ref: '#/components/schemas/AccountStatusEnum'
+        job_title:
+          type: string
+          nullable: true
+          maxLength: 100
+        department:
+          allOf:
+          - $ref: '#/components/schemas/DepartmentRef'
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - department
+      - email
+      - full_name
+      - id
+      - phone
+      - role
+    UserDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_name:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 150
+        phone:
+          type: string
+          maxLength: 20
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        status:
+          $ref: '#/components/schemas/AccountStatusEnum'
+        job_title:
+          type: string
+          nullable: true
+          maxLength: 100
+        department:
+          allOf:
+          - $ref: '#/components/schemas/DepartmentRef'
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        national_id:
+          type: string
+          nullable: true
+          maxLength: 20
+        locked_until:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - created_at
+      - department
+      - email
+      - full_name
+      - id
+      - phone
+      - role
+    UserDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/UserDetailResponseData'
+      required:
+      - data
+      - message
+    UserDetailResponseData:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserDetail'
+      required:
+      - user
+    UserListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/UserListResponseData'
+        meta:
+          $ref: '#/components/schemas/UserListResponseMeta'
+      required:
+      - data
+      - message
+      - meta
+    UserListResponseData:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+      required:
+      - users
+    UserListResponseMeta:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/UserListResponsePagination'
+      required:
+      - pagination
+    UserListResponsePagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total_items:
+          type: integer
+        total_pages:
+          type: integer
+      required:
+      - page
+      - page_size
+      - total_items
+      - total_pages
+    UserStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/UserStatusResponseData'
+      required:
+      - data
+      - message
+    UserStatusResponseData:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserDetail'
+      required:
+      - user
+    UserTransferResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/UserTransferResponseData'
+      required:
+      - data
+      - message
+    UserTransferResponseData:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserDetail'
+      required:
+      - user
+    UserUpdateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/UserUpdateResponseData'
+      required:
+      - data
+      - message
+    UserUpdateResponseData:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserDetail'
+      required:
+      - user
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
